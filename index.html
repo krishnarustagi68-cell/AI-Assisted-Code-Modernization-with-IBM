@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KM-Wächter — Vossberg Mobility Fleet Intelligence</title>
+    <meta name="description" content="AI-powered fleet maintenance dashboard for Vossberg Mobility. Predictive breakdown risk analysis for 120+ vehicles.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(30, 41, 59, 0.8);
+            --border-color: rgba(99, 179, 237, 0.15);
+            --border-glow: rgba(99, 179, 237, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #22d3ee;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-orange: #f97316;
+            --gradient-hero: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            --gradient-accent: linear-gradient(135deg, #3b82f6, #8b5cf6, #22d3ee);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .bg-animation .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: float 20s ease-in-out infinite;
+        }
+        .bg-animation .orb:nth-child(1) {
+            width: 600px; height: 600px;
+            background: var(--accent-blue);
+            top: -100px; left: -100px;
+            animation-delay: 0s;
+        }
+        .bg-animation .orb:nth-child(2) {
+            width: 500px; height: 500px;
+            background: var(--accent-purple);
+            top: 50%; right: -100px;
+            animation-delay: -7s;
+        }
+        .bg-animation .orb:nth-child(3) {
+            width: 400px; height: 400px;
+            background: var(--accent-cyan);
+            bottom: -100px; left: 30%;
+            animation-delay: -14s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.05); }
+            66% { transform: translate(-20px, 30px) scale(0.95); }
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Navigation */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 40px;
+            background: rgba(10, 14, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .nav-logo {
+            width: 40px; height: 40px;
+            background: var(--gradient-accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 18px;
+            color: white;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        .nav-title {
+            font-weight: 700;
+            font-size: 20px;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 8px;
+        }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--text-primary);
+            background: var(--glass);
+        }
+        .nav-links a.active {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+        }
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--accent-green);
+        }
+        .nav-status .dot {
+            width: 8px; height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        /* Main Content */
+        .main-content { padding: 32px 40px; max-width: 1440px; margin: 0 auto; }
+
+        /* Hero Section */
+        .hero {
+            background: var(--gradient-hero);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 48px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 50%; height: 100%;
+            background: radial-gradient(circle at 70% 50%, rgba(59, 130, 246, 0.1), transparent 70%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-purple);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 12px;
+            max-width: 600px;
+        }
+        .hero h1 span {
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 550px;
+            margin-bottom: 24px;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        .btn-secondary {
+            background: var(--glass);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
+            border-radius: 16px 16px 0 0;
+        }
+        .stat-card:nth-child(1)::before { background: var(--accent-blue); }
+        .stat-card:nth-child(2)::before { background: var(--accent-red); }
+        .stat-card:nth-child(3)::before { background: var(--accent-green); }
+        .stat-card:nth-child(4)::before { background: var(--accent-cyan); }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-glow);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        .stat-card:nth-child(1) .stat-icon { background: rgba(59, 130, 246, 0.15); }
+        .stat-card:nth-child(2) .stat-icon { background: rgba(239, 68, 68, 0.15); }
+        .stat-card:nth-child(3) .stat-icon { background: rgba(16, 185, 129, 0.15); }
+        .stat-card:nth-child(4) .stat-icon { background: rgba(34, 211, 238, 0.15); }
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .stat-card:nth-child(1) .stat-value { color: var(--accent-blue); }
+        .stat-card:nth-child(2) .stat-value { color: var(--accent-red); }
+        .stat-card:nth-child(3) .stat-value { color: var(--accent-green); }
+        .stat-card:nth-child(4) .stat-value { color: var(--accent-cyan); }
+        .stat-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+        .stat-change.positive { color: var(--accent-green); background: rgba(16, 185, 129, 0.1); }
+        .stat-change.negative { color: var(--accent-red); background: rgba(239, 68, 68, 0.1); }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            border-color: var(--border-glow);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .card-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-live {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .badge-analysis {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        /* Factor Bars */
+        .factor-item {
+            margin-bottom: 20px;
+        }
+        .factor-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .factor-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .factor-impact {
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .factor-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .factor-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1.5s ease-out;
+            position: relative;
+        }
+        .factor-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .factor-tag {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .tag-strong { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .tag-moderate { background: rgba(249, 115, 22, 0.15); color: var(--accent-orange); }
+        .tag-weak { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); }
+
+        /* Verification Checks */
+        .check-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+            animation: fadeInCheck 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        .check-item:hover {
+            background: rgba(16, 185, 129, 0.05);
+            border-color: rgba(16, 185, 129, 0.15);
+        }
+        @keyframes fadeInCheck {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .check-icon {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .check-pass .check-icon {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+        .check-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Risk Table */
+        .risk-table-wrapper {
+            grid-column: 1 / -1;
+        }
+        .table-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .search-box {
+            flex: 1;
+            padding: 10px 16px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .search-box:focus { border-color: var(--accent-blue); }
+        .search-box::placeholder { color: var(--text-muted); }
+
+        .filter-btn {
+            padding: 10px 18px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+        .filter-btn:hover, .filter-btn.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .risk-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 4px;
+        }
+        .risk-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .risk-table td {
+            padding: 14px 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.01);
+            transition: background 0.3s;
+        }
+        .risk-table tr:hover td {
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .risk-table td:first-child { border-radius: 8px 0 0 8px; }
+        .risk-table td:last-child { border-radius: 0 8px 8px 0; }
+
+        .car-id {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'Inter', monospace;
+        }
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .risk-high {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .risk-medium {
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--accent-orange);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+        .risk-low {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .risk-bar-cell {
+            width: 120px;
+        }
+        .risk-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s ease-out;
+        }
+        .breakdown-yes {
+            color: var(--accent-red);
+            font-weight: 700;
+        }
+        .breakdown-no {
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px 40px;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 40px;
+        }
+        .footer p {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+        .footer a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .content-grid { grid-template-columns: 1fr; }
+            .main-content { padding: 20px; }
+            .navbar { padding: 12px 20px; }
+            .hero { padding: 32px; }
+            .hero h1 { font-size: 28px; }
+        }
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+            .hero h1 { font-size: 24px; }
+        }
+
+        /* Animations */
+        .animate-in {
+            animation: slideUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Counter animation */
+        .counter { display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div class="bg-animation">
+    <div class="orb"></div>
+    <div class="orb"></div>
+    <div class="orb"></div>
+</div>
+
+<div class="app-container">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-logo">K</div>
+            <span class="nav-title">KM-Wächter</span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="active">Dashboard</a>
+            <a href="#risk-analysis">Risk Analysis</a>
+            <a href="#fleet-table">Fleet</a>
+            <a href="#verification">Verification</a>
+        </div>
+        <div class="nav-status">
+            <span class="dot"></span>
+            11/11 Checks Pass
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+        <!-- Hero -->
+        <section class="hero animate-in">
+            <div class="hero-badge">⚡ AI-Powered Fleet Intelligence</div>
+            <h1>Vossberg Mobility <span>Fleet Dashboard</span></h1>
+            <p>Predictive maintenance system monitoring 120 vehicles. Real-time breakdown risk analysis identifies high-risk cars before the 80% wear rule flags them.</p>
+            <div class="hero-actions">
+                <a href="https://github.com/krishnarustagi68-cell/AI-Assisted-Code-Modernization-with-IBM" target="_blank" class="btn btn-primary">
+                    ⭐ View on GitHub
+                </a>
+                <a href="#fleet-table" class="btn btn-secondary">
+                    📊 View Fleet Data
+                </a>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card animate-in" style="animation-delay: 0.1s">
+                <div class="stat-icon">🚗</div>
+                <div class="stat-label">Total Fleet</div>
+                <div class="stat-value"><span class="counter" data-target="120">0</span></div>
+                <span class="stat-change positive">✓ All monitored</span>
+            </div>
+            <div class="stat-card animate-in" style="animation-delay: 0.2s">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-label">At Risk</div>
+                <div class="stat-value"><span class="counter" data-target="26">0</span></div>
+                <span class="stat-change negative">↑ Need attention</span>
+            </div>
+            <div class="stat-card animate-in" style="animation-delay: 0.3s">
+                <div class="stat-icon">✅</div>
+                <div class="stat-label">Healthy</div>
+                <div class="stat-value"><span class="counter" data-target="94">0</span></div>
+                <span class="stat-change positive">↑ 78.3% of fleet</span>
+            </div>
+            <div class="stat-card animate-in" style="animation-delay: 0.4s">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-label">Risk Separation</div>
+                <div class="stat-value"><span class="counter" data-target="20.8" data-decimal="true">0</span></div>
+                <span class="stat-change positive">↑ Strong signal</span>
+            </div>
+        </div>
+
+        <!-- Analysis & Checks -->
+        <div class="content-grid">
+            <!-- Breakdown Factors -->
+            <div class="card animate-in" style="animation-delay: 0.5s" id="risk-analysis">
+                <div class="card-header">
+                    <span class="card-title">📊 Breakdown Risk Factors</span>
+                    <span class="card-badge badge-analysis">Analysis</span>
+                </div>
+
+                <div class="factor-item">
+                    <div class="factor-header">
+                        <span class="factor-name">km_since_service</span>
+                        <span class="factor-impact" style="color: var(--accent-red)">+60.8%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: 0%; background: linear-gradient(90deg, var(--accent-red), var(--accent-orange));" data-width="92%"></div>
+                    </div>
+                    <span class="factor-tag tag-strong">⚡ Strongest predictor</span>
+                </div>
+
+                <div class="factor-item">
+                    <div class="factor-header">
+                        <span class="factor-name">avg_daily_km</span>
+                        <span class="factor-impact" style="color: var(--accent-orange)">+21.5%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: 0%; background: linear-gradient(90deg, var(--accent-orange), var(--accent-yellow));" data-width="65%"></div>
+                    </div>
+                    <span class="factor-tag tag-moderate">🔥 Strong signal</span>
+                </div>
+
+                <div class="factor-item">
+                    <div class="factor-header">
+                        <span class="factor-name">load_factor</span>
+                        <span class="factor-impact" style="color: var(--accent-yellow)">+18.8%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: 0%; background: linear-gradient(90deg, var(--accent-yellow), var(--accent-green));" data-width="55%"></div>
+                    </div>
+                    <span class="factor-tag tag-moderate">📈 Moderate signal</span>
+                </div>
+
+                <div class="factor-item">
+                    <div class="factor-header">
+                        <span class="factor-name">odometer_km</span>
+                        <span class="factor-impact" style="color: var(--text-muted)">+0.3%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: 0%; background: var(--text-muted);" data-width="8%"></div>
+                    </div>
+                    <span class="factor-tag tag-weak">❌ No signal</span>
+                </div>
+
+                <div class="factor-item">
+                    <div class="factor-header">
+                        <span class="factor-name">age_years</span>
+                        <span class="factor-impact" style="color: var(--text-muted)">−0.2%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: 0%; background: var(--text-muted);" data-width="5%"></div>
+                    </div>
+                    <span class="factor-tag tag-weak">❌ No signal</span>
+                </div>
+            </div>
+
+            <!-- Verification Checks -->
+            <div class="card animate-in" style="animation-delay: 0.6s" id="verification">
+                <div class="card-header">
+                    <span class="card-title">✅ Verification — 11/11 Pass</span>
+                    <span class="card-badge badge-live">All Clear</span>
+                </div>
+                <div class="check-list">
+                    <div class="check-item check-pass" style="animation-delay: 0.7s"><div class="check-icon">✓</div><span class="check-text">Wear is no longer floored to 0</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 0.8s"><div class="check-icon">✓</div><span class="check-text">The nearly-worn car is flagged</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 0.9s"><div class="check-icon">✓</div><span class="check-text">A missing reading is handled</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.0s"><div class="check-icon">✓</div><span class="check-text">15000 km / 80% rules untouched</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.1s"><div class="check-icon">✓</div><span class="check-text">settings.cfg rules untouched</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.2s"><div class="check-icon">✓</div><span class="check-text">Nightly report no longer crashes</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.3s"><div class="check-icon">✓</div><span class="check-text">Average wear is correct (59.67%)</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.4s"><div class="check-icon">✓</div><span class="check-text">km-to-miles conversion fixed</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.5s"><div class="check-icon">✓</div><span class="check-text">Missing test added</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.6s"><div class="check-icon">✓</div><span class="check-text">Breakdown-risk analysis done</span></div>
+                    <div class="check-item check-pass" style="animation-delay: 1.7s"><div class="check-icon">✓</div><span class="check-text">NOTES.md written</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fleet Risk Table -->
+        <div class="card animate-in risk-table-wrapper" style="animation-delay: 0.7s" id="fleet-table">
+            <div class="card-header">
+                <span class="card-title">🚗 Fleet Risk Ranking — Top 30</span>
+                <span class="card-badge badge-analysis">120 cars analyzed</span>
+            </div>
+            <div class="table-controls">
+                <input type="text" class="search-box" placeholder="🔍 Search car ID..." id="searchInput">
+                <button class="filter-btn active" onclick="filterTable('all', this)">All</button>
+                <button class="filter-btn" onclick="filterTable('high', this)">⚠️ High Risk</button>
+                <button class="filter-btn" onclick="filterTable('broke', this)">💥 Broke Down</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="risk-table" id="riskTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Car ID</th>
+                            <th>Risk Score</th>
+                            <th>Risk Level</th>
+                            <th>km Since Service</th>
+                            <th>Daily km</th>
+                            <th>Load</th>
+                            <th>Broke Down?</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>KM-Wächter Fleet Intelligence Dashboard — Built by <strong>Krishna Rustagi</strong> | 
+           <a href="https://github.com/krishnarustagi68-cell/AI-Assisted-Code-Modernization-with-IBM" target="_blank">GitHub</a> | 
+           <a href="https://www.linkedin.com/in/krishna-rustagi-a83084308" target="_blank">LinkedIn</a> | 
+           Powered by IBM SkillsBuild
+        </p>
+    </footer>
+</div>
+
+<script>
+// Fleet data from the actual analysis
+const fleetData = [
+    {rank:1,id:"VOS-1822",risk:86.2,km:13977,daily:200,load:0.98,broke:true},
+    {rank:2,id:"VOS-1728",risk:84.9,km:13882,daily:244,load:0.71,broke:true},
+    {rank:3,id:"VOS-1259",risk:83.2,km:12556,daily:229,load:0.88,broke:true},
+    {rank:4,id:"VOS-1217",risk:81.0,km:15657,daily:164,load:0.79,broke:false},
+    {rank:5,id:"VOS-1505",risk:75.0,km:14984,daily:160,load:0.67,broke:true},
+    {rank:6,id:"VOS-1032",risk:74.0,km:16296,daily:134,load:0.62,broke:false},
+    {rank:7,id:"VOS-1082",risk:70.2,km:14176,daily:173,load:0.52,broke:true},
+    {rank:8,id:"VOS-1098",risk:69.6,km:12132,daily:172,load:0.74,broke:true},
+    {rank:9,id:"VOS-1831",risk:69.4,km:14122,daily:159,load:0.57,broke:true},
+    {rank:10,id:"VOS-1224",risk:69.3,km:13380,daily:186,load:0.51,broke:true},
+    {rank:11,id:"VOS-1755",risk:68.8,km:12684,daily:177,load:0.62,broke:true},
+    {rank:12,id:"VOS-1162",risk:68.6,km:11039,daily:187,load:0.75,broke:false},
+    {rank:13,id:"VOS-1471",risk:68.3,km:11396,daily:177,load:0.75,broke:true},
+    {rank:14,id:"VOS-1707",risk:66.9,km:12747,daily:168,load:0.59,broke:true},
+    {rank:15,id:"VOS-1130",risk:66.4,km:15185,daily:118,load:0.56,broke:false},
+    {rank:16,id:"VOS-1594",risk:65.8,km:10500,daily:183,load:0.73,broke:false},
+    {rank:17,id:"VOS-1390",risk:65.0,km:15128,daily:121,load:0.50,broke:false},
+    {rank:18,id:"VOS-1366",risk:65.0,km:14890,daily:124,load:0.51,broke:true},
+    {rank:19,id:"VOS-1525",risk:64.4,km:11134,daily:179,load:0.63,broke:true},
+    {rank:20,id:"VOS-1073",risk:62.8,km:14513,daily:115,load:0.52,broke:true},
+    {rank:21,id:"VOS-1643",risk:62.7,km:7605,daily:223,load:0.74,broke:false},
+    {rank:22,id:"VOS-1580",risk:62.5,km:5194,daily:229,load:0.98,broke:false},
+    {rank:23,id:"VOS-1300",risk:62.3,km:13920,daily:130,load:0.49,broke:true},
+    {rank:24,id:"VOS-1464",risk:61.9,km:12879,daily:146,load:0.51,broke:false},
+    {rank:25,id:"VOS-1137",risk:60.5,km:10454,daily:154,load:0.70,broke:false},
+    {rank:26,id:"VOS-1534",risk:59.9,km:14027,daily:119,load:0.45,broke:false},
+    {rank:27,id:"VOS-1309",risk:59.8,km:5561,daily:223,load:0.87,broke:true},
+    {rank:28,id:"VOS-1395",risk:58.3,km:8847,daily:179,load:0.67,broke:false},
+    {rank:29,id:"VOS-1493",risk:57.7,km:13813,daily:124,load:0.37,broke:true},
+    {rank:30,id:"VOS-1457",risk:56.8,km:13421,daily:128,load:0.36,broke:true},
+];
+
+// Render table
+function renderTable(data) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    data.forEach((car, i) => {
+        const riskClass = car.risk >= 70 ? 'risk-high' : car.risk >= 50 ? 'risk-medium' : 'risk-low';
+        const riskLabel = car.risk >= 70 ? '🔴 High' : car.risk >= 50 ? '🟠 Medium' : '🟢 Low';
+        const barColor = car.risk >= 70 ? 'var(--accent-red)' : car.risk >= 50 ? 'var(--accent-orange)' : 'var(--accent-green)';
+        const tr = document.createElement('tr');
+        tr.dataset.risk = car.risk >= 70 ? 'high' : car.risk >= 50 ? 'medium' : 'low';
+        tr.dataset.broke = car.broke ? 'true' : 'false';
+        tr.innerHTML = `
+            <td style="color: var(--text-muted); font-weight: 600;">#${car.rank}</td>
+            <td><span class="car-id">${car.id}</span></td>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <strong style="color:var(--text-primary);width:35px;">${car.risk}</strong>
+                    <div class="risk-bar-bg" style="flex:1;max-width:80px;">
+                        <div class="risk-bar-fill" style="width:${car.risk}%;background:${barColor};"></div>
+                    </div>
+                </div>
+            </td>
+            <td><span class="risk-badge ${riskClass}">${riskLabel}</span></td>
+            <td>${car.km.toLocaleString()} km</td>
+            <td>${car.daily} km/d</td>
+            <td>${car.load.toFixed(2)}</td>
+            <td><span class="${car.broke ? 'breakdown-yes' : 'breakdown-no'}">${car.broke ? '💥 YES' : '—'}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Filter
+function filterTable(type, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    let filtered = fleetData;
+    if (type === 'high') filtered = fleetData.filter(c => c.risk >= 65);
+    if (type === 'broke') filtered = fleetData.filter(c => c.broke);
+    renderTable(filtered);
+}
+
+// Search
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const q = e.target.value.toUpperCase();
+    const filtered = fleetData.filter(c => c.id.includes(q));
+    renderTable(filtered);
+});
+
+// Counter animation
+function animateCounters() {
+    document.querySelectorAll('.counter').forEach(counter => {
+        const target = parseFloat(counter.dataset.target);
+        const isDecimal = counter.dataset.decimal === 'true';
+        const duration = 2000;
+        const start = performance.now();
+        function update(now) {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            const current = target * ease;
+            counter.textContent = isDecimal ? current.toFixed(1) : Math.round(current);
+            if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+    });
+}
+
+// Animate factor bars
+function animateBars() {
+    document.querySelectorAll('.factor-fill').forEach(bar => {
+        setTimeout(() => {
+            bar.style.width = bar.dataset.width;
+        }, 500);
+    });
+}
+
+// Init
+renderTable(fleetData);
+setTimeout(animateCounters, 300);
+setTimeout(animateBars, 600);
+</script>
+
+</body>
+</html>
