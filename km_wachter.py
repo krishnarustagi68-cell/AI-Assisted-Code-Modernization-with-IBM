@@ -1,30 +1,29 @@
 # km_wachter.py
 # KM-Waechter decides when a Vossberg Mobility car needs a service.
-# Written in 2013. Nobody has cleaned it up since.
 
-SERVICE_INTERVAL_KM = 15000
-WARN_AT_PERCENT = 80
-
-
-def wear_percent(km_since_service, interval):
-    ratio = km_since_service // interval   # service intervals used up
-    return ratio * 100
+SERVICE_INTERVAL_KM: int = 15000
+WARN_AT_PERCENT: int = 80
 
 
-def needs_service(car):
-    last = car.get("last_service_km", 0)   # if missing, assume 0
-    km_since = car["odometer"] - last
+def wear_percent(km_since_service: int, interval: int) -> float:
+    """Return the wear percentage (0–100+) for a given distance since last service."""
+    return (km_since_service / interval) * 100
+
+
+def needs_service(car: dict) -> bool:
+    """Return True if the car is due for service based on wear percentage."""
+    if "last_service_km" not in car:
+        return False  # unknown service history — cannot determine wear
+    km_since = car["odometer"] - car["last_service_km"]
     pct = wear_percent(km_since, SERVICE_INTERVAL_KM)
-    if pct >= WARN_AT_PERCENT:
-        return True
-    else:
-        return False
+    return pct >= WARN_AT_PERCENT
 
 
-def check_fleet(fleet):
+def check_fleet(fleet: list[dict]) -> list[str]:
+    """Check every car in the fleet and return a list of IDs that are due for service."""
     flagged = []
     for car in fleet:
-        if needs_service(car) == True:
+        if needs_service(car):
             flagged.append(car["id"])
-            print("SERVICE DUE: %s" % car["id"])
+            print(f"SERVICE DUE: {car['id']}")
     return flagged
